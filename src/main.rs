@@ -1,4 +1,4 @@
-#[cfg(test)]
+#![allow(unused)]
 
 #[derive(Debug, PartialEq, Eq)]
 struct Point {
@@ -20,10 +20,10 @@ struct Snake {
 }
 
 impl Snake {
-	fn new(length: u32) -> Snake {
+	fn new(length: u32, origin_x: u32, origin_y: u32) -> Snake {
 		let mut body = Vec::<Point>::new();
 		for x in 0..length {
-			body.push(Point{ x: x, y: 0 });
+			body.push(Point{ x: origin_x + x, y: origin_y });
 		}
 		Snake {
 			body,
@@ -48,61 +48,117 @@ impl Snake {
 	}
 }
 
+struct SnakePit {
+	height: u32,
+	width: u32
+}
+
+struct SnakeEnginePixel {
+	x: u32,
+	y: u32
+}
+
+struct SnakeEngine {
+	snake: Snake,
+	snake_pit: SnakePit
+}
+
+impl SnakeEngine {
+	fn new(snake_pit_height: u32, snake_pit_width: u32) -> SnakeEngine {
+		SnakeEngine {
+			snake: Snake::new(3, 1, 2),
+			snake_pit: SnakePit { height: snake_pit_height, width: snake_pit_width }
+		}
+	}
+	
+	fn tick(&mut self) {
+		self.snake.move_to_next_position();
+	}
+	
+	fn rasterize(&self) -> Vec::<SnakeEnginePixel> {
+		vec![]
+	}
+}
+
+
 fn main() {
-    println!("Hello, world!");
+
 }
 
-#[test]
-fn points_are_equal() {
-	let p1 = Point{ x: 1, y: 2 };
-	let p2 = Point{ x: 1, y: 2 };
-	assert_eq!(&p1, &p2);
-}
+#[cfg(test)]
+mod tests {
+	use super::*;
 
-#[test]
-fn creating_snake_with_len_3() {
-	let snake = Snake::new(3);
-	assert_eq!(&snake.body, &[Point{ x: 0, y: 0 },
-	                          Point{ x: 1, y: 0 },
-							  Point{ x: 2, y: 0 }]);
-	assert_eq!(snake.direction, Direction::Right);
-}
+	#[test]
+	fn points_are_equal() {
+		let p1 = Point{ x: 1, y: 2 };
+		let p2 = Point{ x: 1, y: 2 };
+		assert_eq!(&p1, &p2);
+	}
 
-#[test]
-fn moving_around() {
-	let mut snake = Snake::new(3);
+	#[test]
+	fn creating_snake_with_len_3() {
+		let snake = Snake::new(3, 0, 0);
+		assert_eq!(&snake.body, &[Point{ x: 0, y: 0 },
+								  Point{ x: 1, y: 0 },
+								  Point{ x: 2, y: 0 }]);
+		assert_eq!(snake.direction, Direction::Right);
+	}
 	
-	snake.move_to_next_position();
+	#[test]
+	fn creating_snake_with_offset() {
+		let snake = Snake::new(3, 5, 5);
+		assert_eq!(&snake.body, &[Point{ x: 5, y: 5 },
+								  Point{ x: 6, y: 5 },
+								  Point{ x: 7, y: 5 }]);
+		assert_eq!(snake.direction, Direction::Right);
+	}
+
+	#[test]
+	fn moving_around() {
+		let mut snake = Snake::new(3, 0, 0);
+		
+		snake.move_to_next_position();
+		
+		assert_eq!(&snake.body, &[Point{ x: 1, y: 0 },
+								  Point{ x: 2, y: 0 },
+								  Point{ x: 3, y: 0 }]);
+		
+		snake.change_direction(Direction::Down);
+		snake.move_to_next_position();
+		
+		assert_eq!(&snake.body, &[Point{ x: 2, y: 0 },
+								  Point{ x: 3, y: 0 },
+								  Point{ x: 3, y: 1 }]);
+								  
+		snake.change_direction(Direction::Left);
+		snake.move_to_next_position();
+		
+		assert_eq!(&snake.body, &[Point{ x: 3, y: 0 },
+								  Point{ x: 3, y: 1 },
+								  Point{ x: 2, y: 1 }]);
+								  
+		snake.change_direction(Direction::Up);
+		snake.move_to_next_position();
+		
+		assert_eq!(&snake.body, &[Point{ x: 3, y: 1 },
+								  Point{ x: 2, y: 1 },
+								  Point{ x: 2, y: 0 }]);
+								  
+		snake.change_direction(Direction::Right);
+		snake.move_to_next_position();
+		
+		assert_eq!(&snake.body, &[Point{ x: 2, y: 1 },
+								  Point{ x: 2, y: 0 },
+								  Point{ x: 3, y: 0 }]);
+	}
 	
-	assert_eq!(&snake.body, &[Point{ x: 1, y: 0 },
-	                          Point{ x: 2, y: 0 },
-							  Point{ x: 3, y: 0 }]);
-	
-	snake.change_direction(Direction::Down);
-	snake.move_to_next_position();
-	
-	assert_eq!(&snake.body, &[Point{ x: 2, y: 0 },
-	                          Point{ x: 3, y: 0 },
-							  Point{ x: 3, y: 1 }]);
-							  
-	snake.change_direction(Direction::Left);
-	snake.move_to_next_position();
-	
-	assert_eq!(&snake.body, &[Point{ x: 3, y: 0 },
-	                          Point{ x: 3, y: 1 },
-							  Point{ x: 2, y: 1 }]);
-							  
-	snake.change_direction(Direction::Up);
-	snake.move_to_next_position();
-	
-	assert_eq!(&snake.body, &[Point{ x: 3, y: 1 },
-	                          Point{ x: 2, y: 1 },
-							  Point{ x: 2, y: 0 }]);
-							  
-	snake.change_direction(Direction::Right);
-	snake.move_to_next_position();
-	
-	assert_eq!(&snake.body, &[Point{ x: 3, y: 1 },
-	                          Point{ x: 2, y: 1 },
-							  Point{ x: 2, y: 0 }]);
+	#[test]
+	fn creating_30x30_snake_engine()
+	{
+		let mut engine = SnakeEngine::new(30, 30);
+		let pixels = engine.rasterize();
+		
+		assert_eq!(pixels.len(), 0);
+	}
 }
