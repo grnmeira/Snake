@@ -46,6 +46,10 @@ impl Snake {
 	fn change_direction(&mut self, direction: Direction) {
 		self.direction = direction;
 	}
+	
+	fn get_body(&self) -> &Vec<Point> {
+		&self.body
+	}
 }
 
 struct SnakePit {
@@ -53,6 +57,7 @@ struct SnakePit {
 	width: u32
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct SnakeEnginePixel {
 	x: u32,
 	y: u32
@@ -76,7 +81,10 @@ impl SnakeEngine {
 	}
 	
 	fn rasterize(&self) -> Vec::<SnakeEnginePixel> {
-		vec![]
+		let mut output = Vec::<SnakeEnginePixel>::new();
+		output.try_reserve_exact(self.snake.get_body().len()).unwrap();
+		output.extend(self.snake.get_body().iter().map(| point | SnakeEnginePixel { x: point.x, y: point.y }));
+		output
 	}
 }
 
@@ -159,6 +167,29 @@ mod tests {
 		let mut engine = SnakeEngine::new(30, 30);
 		let pixels = engine.rasterize();
 		
-		assert_eq!(pixels.len(), 0);
+		assert_eq!(pixels.len(), 3);
+		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 1, y: 2 },
+							  SnakeEnginePixel{ x: 2, y: 2 },
+							  SnakeEnginePixel{ x: 3, y: 2 }]);
+	}
+	
+	#[test]
+	fn snake_moving_around_in_snake_engine()
+	{
+		let mut engine = SnakeEngine::new(30, 30);
+		let pixels = engine.rasterize();
+		
+		assert_eq!(pixels.len(), 3);
+		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 1, y: 2 },
+							  SnakeEnginePixel{ x: 2, y: 2 },
+							  SnakeEnginePixel{ x: 3, y: 2 }]);
+							  
+		engine.tick();
+		let pixels = engine.rasterize();
+		
+		assert_eq!(pixels.len(), 3);
+		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 2, y: 2 },
+							  SnakeEnginePixel{ x: 3, y: 2 },
+							  SnakeEnginePixel{ x: 4, y: 2 }]);
 	}
 }
