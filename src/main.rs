@@ -57,10 +57,23 @@ struct SnakePit {
 	width: u32
 }
 
-#[derive(Debug, PartialEq, Eq)]
-struct SnakeEnginePixel {
-	x: u32,
-	y: u32
+impl SnakePit {
+	fn get_perimeter(&self) -> Vec<Point> {
+		let mut perimeter = Vec::<Point>::new();
+		perimeter.try_reserve_exact((2 * self.width + 2 * self.height - 4) as usize);
+		for y in 0..self.height {
+			if y == 0 || y == self.height {
+				for x in 0..self.width {
+					perimeter.push(Point{ x: x, y: y });
+				}
+			}
+			else {
+				perimeter.push(Point{ x: 0, y: y });
+				perimeter.push(Point{ x: self.width - 1, y: y});
+			}
+		}
+		perimeter
+	}
 }
 
 struct SnakeEngine {
@@ -79,15 +92,7 @@ impl SnakeEngine {
 	fn tick(&mut self) {
 		self.snake.move_to_next_position();
 	}
-	
-	fn rasterize(&self) -> Vec::<SnakeEnginePixel> {
-		let mut output = Vec::<SnakeEnginePixel>::new();
-		output.try_reserve_exact(self.snake.get_body().len()).unwrap();
-		output.extend(self.snake.get_body().iter().map(| point | SnakeEnginePixel { x: point.x, y: point.y }));
-		output
-	}
 }
-
 
 fn main() {
 
@@ -165,31 +170,12 @@ mod tests {
 	fn creating_30x30_snake_engine()
 	{
 		let mut engine = SnakeEngine::new(30, 30);
-		let pixels = engine.rasterize();
-		
-		assert_eq!(pixels.len(), 3);
-		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 1, y: 2 },
-							  SnakeEnginePixel{ x: 2, y: 2 },
-							  SnakeEnginePixel{ x: 3, y: 2 }]);
 	}
 	
 	#[test]
 	fn snake_moving_around_in_snake_engine()
 	{
 		let mut engine = SnakeEngine::new(30, 30);
-		let pixels = engine.rasterize();
-		
-		assert_eq!(pixels.len(), 3);
-		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 1, y: 2 },
-							  SnakeEnginePixel{ x: 2, y: 2 },
-							  SnakeEnginePixel{ x: 3, y: 2 }]);
-							  
-		engine.tick();
-		let pixels = engine.rasterize();
-		
-		assert_eq!(pixels.len(), 3);
-		assert_eq!(&pixels, &[SnakeEnginePixel{ x: 2, y: 2 },
-							  SnakeEnginePixel{ x: 3, y: 2 },
-							  SnakeEnginePixel{ x: 4, y: 2 }]);
+							 
 	}
 }
