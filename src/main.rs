@@ -1,5 +1,9 @@
 #![allow(unused)]
 
+use std::{thread, time};
+use std::io::{stdout, Write};
+use crossterm::{ExecutableCommand, cursor, terminal};
+
 #[derive(Debug, PartialEq, Eq)]
 struct Point {
 	x: u32,
@@ -84,7 +88,7 @@ struct SnakeEngine {
 impl SnakeEngine {
 	fn new(snake_pit_height: u32, snake_pit_width: u32) -> SnakeEngine {
 		SnakeEngine {
-			snake: Snake::new(3, 1, 2),
+			snake: Snake::new(3, 2, 2),
 			snake_pit: SnakePit { height: snake_pit_height, width: snake_pit_width }
 		}
 	}
@@ -94,8 +98,45 @@ impl SnakeEngine {
 	}
 }
 
-fn main() {
+fn clear_display() {
+	stdout().execute(terminal::Clear(terminal::ClearType::All));
+}
 
+fn display_snake_pit(snake_pit: &SnakePit) {
+	stdout().execute(cursor::MoveTo(0,0));
+	for y in 0..snake_pit.height {
+		if y == 0 || y == snake_pit.height - 1 {
+			for x in 0..snake_pit.width {
+				print!("#");
+			}
+			print!("\n");
+		} else {
+			print!("#");
+			for x in 1..snake_pit.width - 1 {
+				print!(" ");
+			}
+			print!("#\n");
+		}
+	}
+}
+
+fn display_snake(snake_body: &Vec<Point>) {
+	let mut stdout = stdout();
+	for point in snake_body.iter() {
+		stdout.execute(cursor::MoveTo(point.x as u16, point.y as u16));
+		print!("#");
+	}
+}
+
+fn main() {
+	let mut snake_engine = SnakeEngine::new(30, 30);
+	clear_display();
+	display_snake_pit(&snake_engine.snake_pit);
+	loop {
+		display_snake(&snake_engine.snake.body);
+		thread::sleep(time::Duration::from_secs(1));
+		snake_engine.tick();
+	}
 }
 
 #[cfg(test)]
@@ -170,12 +211,30 @@ mod tests {
 	fn creating_30x30_snake_engine()
 	{
 		let mut engine = SnakeEngine::new(30, 30);
+		
+		assert_eq!(engine.snake_pit.height, 30);
+		assert_eq!(engine.snake_pit.width, 30);
+		
+		let snake_body = &engine.snake.body;
+
+		assert_eq!(snake_body.len(), 3);
+		assert_eq!(snake_body, &[Point{ x: 2, y: 2 },
+					             Point{ x: 3, y: 2 },
+						         Point{ x: 4, y: 2 }]);
 	}
 	
 	#[test]
 	fn snake_moving_around_in_snake_engine()
 	{
 		let mut engine = SnakeEngine::new(30, 30);
-							 
+		
+		engine.tick();
+		
+		let snake_body = &engine.snake.body;
+
+		assert_eq!(snake_body.len(), 3);
+		assert_eq!(snake_body, &[Point{ x: 3, y: 2 },
+					             Point{ x: 4, y: 2 },
+						         Point{ x: 5, y: 2 }]);
 	}
 }
