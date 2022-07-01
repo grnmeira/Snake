@@ -2,7 +2,7 @@
 
 use std::{thread, time};
 use std::io::{stdout, Write};
-use crossterm::{ExecutableCommand, cursor, terminal};
+use crossterm::{ExecutableCommand, cursor, terminal, style::Print};
 
 #[derive(Debug, PartialEq, Eq)]
 struct Point {
@@ -124,15 +124,15 @@ fn display_snake(snake_body: &Vec<Point>) {
 	let mut stdout = stdout();
 	for point in snake_body.iter() {
 		stdout.execute(cursor::MoveTo(point.x as u16, point.y as u16));
-		print!("#");
+		stdout.execute(Print("#"));
 	}
 }
 
 fn main() {
 	let mut snake_engine = SnakeEngine::new(30, 30);
-	clear_display();
-	display_snake_pit(&snake_engine.snake_pit);
 	loop {
+		clear_display();
+		display_snake_pit(&snake_engine.snake_pit);
 		display_snake(&snake_engine.snake.body);
 		thread::sleep(time::Duration::from_secs(1));
 		snake_engine.tick();
