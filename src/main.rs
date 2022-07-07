@@ -1,8 +1,16 @@
 #![allow(unused)]
 
-use crossterm::{cursor, style::Print, terminal, ExecutableCommand};
+use crossterm::{
+    cursor,
+    event::{self, Event},
+    style::Print,
+    terminal, ExecutableCommand,
+};
 use std::io::{stdout, Write};
-use std::{thread, time};
+use std::{
+    thread,
+    time::{self, Instant},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 struct Point {
@@ -148,13 +156,28 @@ fn display_snake(snake_body: &Vec<Point>) {
     }
 }
 
+fn wait_for_latest_event(timeout: u32) -> Option<event::KeyCode> {
+    let limit = Instant::now() + time::Duration::from_millis(1000);
+    let mut latest_event: Option<event::KeyCode> = None;
+    while limit - Instant::now() > time::Duration::from_millis(0) {
+        if event::poll(limit - Instant::now()).unwrap() {
+            match event::read().unwrap() {
+                Event::Key(event) => latest_event = Some(event.code),
+                _ => (),
+            }
+        }
+    }
+    latest_event
+}
+
 fn main() {
     let mut snake_engine = SnakeEngine::new(30, 30);
+
     loop {
         clear_display();
         display_snake_pit(&snake_engine.snake_pit);
         display_snake(&snake_engine.snake.body);
-        thread::sleep(time::Duration::from_secs(1));
+        let event = wait_for_latest_event(1000);
         snake_engine.tick();
     }
 }
