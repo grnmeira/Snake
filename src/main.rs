@@ -121,6 +121,10 @@ impl SnakeEngine {
         }
     }
 
+    fn change_snake_direction(&mut self, direction: Direction) {
+        self.snake.change_direction(direction);
+    }
+
     fn tick(&mut self) {
         self.snake.move_to_next_position();
     }
@@ -178,6 +182,13 @@ fn main() {
         display_snake_pit(&snake_engine.snake_pit);
         display_snake(&snake_engine.snake.body);
         let event = wait_for_latest_event(1000);
+        match event {
+            Some(event::KeyCode::Up) => snake_engine.change_snake_direction(Direction::Up),
+            Some(event::KeyCode::Left) => snake_engine.change_snake_direction(Direction::Left),
+            Some(event::KeyCode::Right) => snake_engine.change_snake_direction(Direction::Right),
+            Some(event::KeyCode::Down) => snake_engine.change_snake_direction(Direction::Down),
+            _ => (),
+        }
         snake_engine.tick();
     }
 }
