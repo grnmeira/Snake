@@ -6,13 +6,14 @@ use crossterm::{
     style::Print,
     terminal, ExecutableCommand,
 };
+use rand::Rng;
 use std::io::{stdout, Write};
 use std::{
     thread,
     time::{self, Instant},
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 struct Point {
     x: u32,
     y: u32,
@@ -29,6 +30,7 @@ enum Direction {
 struct Snake {
     body: Vec<Point>,
     direction: Direction,
+    longer_on_next_move: bool,
 }
 
 impl Snake {
@@ -43,6 +45,7 @@ impl Snake {
         Snake {
             body,
             direction: Direction::Right,
+            longer_on_next_move: false,
         }
     }
 
@@ -67,7 +70,10 @@ impl Snake {
             },
         };
         self.body.push(updated_head);
-        self.body.remove(0);
+        if !self.longer_on_next_move {
+            self.body.remove(0);
+        }
+        self.longer_on_next_move = false;
     }
 
     fn change_direction(&mut self, direction: Direction) {
@@ -76,6 +82,10 @@ impl Snake {
 
     fn get_body(&self) -> &Vec<Point> {
         &self.body
+    }
+
+    fn make_longer(&mut self) {
+        self.longer_on_next_move = true;
     }
 }
 
@@ -108,6 +118,7 @@ impl SnakePit {
 struct SnakeEngine {
     snake: Snake,
     snake_pit: SnakePit,
+    snack_position: Point,
 }
 
 impl SnakeEngine {
@@ -118,6 +129,7 @@ impl SnakeEngine {
                 height: snake_pit_height,
                 width: snake_pit_width,
             },
+            snack_position: Point::default(),
         }
     }
 
@@ -127,6 +139,14 @@ impl SnakeEngine {
 
     fn tick(&mut self) {
         self.snake.move_to_next_position();
+    }
+
+    fn generate_snack(&mut self) {
+        let mut rng = rand::thread_rng();
+        self.snack_position = Point {
+            x: rng.gen_range(1..self.snake_pit.width),
+            y: rng.gen_range(1..self.snake_pit.height),
+        };
     }
 }
 
@@ -331,6 +351,42 @@ mod tests {
                 Point { x: 3, y: 2 },
                 Point { x: 4, y: 2 },
                 Point { x: 5, y: 2 }
+            ]
+        );
+    }
+
+    #[test]
+    fn make_snake_longer() {
+        let mut snake = Snake::new(3, Point { x: 0, y: 0 });
+
+        snake.make_longer();
+        snake.move_to_next_position();
+
+        assert_eq!(snake.get_body().len(), 4);
+        assert_eq!(
+            snake.get_body(),
+            &[
+                Point { x: 0, y: 0 },
+                Point { x: 1, y: 0 },
+                Point { x: 2, y: 0 },
+                Point { x: 3, y: 0 },
+            ]
+        );
+
+        snake.change_direction(Direction::Down);
+        snake.move_to_next_position();
+        snake.make_longer();
+        snake.move_to_next_position();
+
+        assert_eq!(snake.get_body().len(), 5);
+        assert_eq!(
+            snake.get_body(),
+            &[
+                Point { x: 1, y: 0 },
+                Point { x: 2, y: 0 },
+                Point { x: 3, y: 0 },
+                Point { x: 3, y: 1 },
+                Point { x: 3, y: 2 },
             ]
         );
     }
