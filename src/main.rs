@@ -87,6 +87,10 @@ impl Snake {
     fn make_longer(&mut self) {
         self.longer_on_next_move = true;
     }
+	
+	fn is_eating_snack(&self, snack_position: &Point) -> bool {
+		self.body.last().unwrap() == snack_position
+	}
 }
 
 struct SnakePit {
@@ -123,13 +127,15 @@ struct SnakeEngine {
 
 impl SnakeEngine {
     fn new(snake_pit_height: u32, snake_pit_width: u32) -> SnakeEngine {
+        let snake_pit = SnakePit {
+            height: snake_pit_height,
+            width: snake_pit_width,
+        };
+        let snack_position = Self::generate_snack(&snake_pit);
         SnakeEngine {
             snake: Snake::new(3, Point { x: 2, y: 2 }),
-            snake_pit: SnakePit {
-                height: snake_pit_height,
-                width: snake_pit_width,
-            },
-            snack_position: Point::default(),
+            snake_pit,
+            snack_position,
         }
     }
 
@@ -139,14 +145,18 @@ impl SnakeEngine {
 
     fn tick(&mut self) {
         self.snake.move_to_next_position();
+		if self.snake.is_eating_snack(&self.snack_position) {
+			self.snake.make_longer();
+			self.snack_position = Self::generate_snack(&self.snake_pit);
+		}
     }
 
-    fn generate_snack(&mut self) {
+    fn generate_snack(snake_pit: &SnakePit) -> Point {
         let mut rng = rand::thread_rng();
-        self.snack_position = Point {
-            x: rng.gen_range(1..self.snake_pit.width),
-            y: rng.gen_range(1..self.snake_pit.height),
-        };
+        Point {
+            x: rng.gen_range(1..snake_pit.width - 1),
+            y: rng.gen_range(1..snake_pit.height - 1),
+        }
     }
 }
 
@@ -180,6 +190,12 @@ fn display_snake(snake_body: &Vec<Point>) {
     }
 }
 
+fn display_snack(snack_position: &Point) {
+	let mut stdout = stdout();
+	stdout.execute(cursor::MoveTo(snack_position.x as u16, snack_position.y as u16));
+	stdout.execute(Print("#"));
+}
+
 fn wait_for_latest_event(timeout: u32) -> Option<event::KeyCode> {
     let limit = Instant::now() + time::Duration::from_millis(1000);
     let mut latest_event: Option<event::KeyCode> = None;
@@ -200,6 +216,7 @@ fn main() {
     loop {
         clear_display();
         display_snake_pit(&snake_engine.snake_pit);
+		display_snack(&snake_engine.snack_position);
         display_snake(&snake_engine.snake.body);
         let event = wait_for_latest_event(1000);
         match event {
