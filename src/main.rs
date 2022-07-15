@@ -91,6 +91,20 @@ impl Snake {
 	fn is_eating_snack(&self, snack_position: &Point) -> bool {
 		self.body.last().unwrap() == snack_position
 	}
+	
+	fn collides_with_point(&self, point: &Point) -> bool {
+		for body_part in self.body.iter() {
+			if body_part == point {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	fn collides_with_bounds(&self, snake_pit: &SnakePit) -> bool {
+		let head = self.body.last().unwrap();
+		head.x <= 0 || head.y <= 0 || head.x >= snake_pit.width || head.y >= snake_pit.height
+	}
 }
 
 struct SnakePit {
@@ -125,15 +139,22 @@ struct SnakeEngine {
     snack_position: Point,
 }
 
+#[derive(Debug, PartialEq)]
+enum GameStatus {
+	ContinueAtLevel(i32),
+	Finished,
+}
+
 impl SnakeEngine {
     fn new(snake_pit_height: u32, snake_pit_width: u32) -> SnakeEngine {
         let snake_pit = SnakePit {
             height: snake_pit_height,
             width: snake_pit_width,
         };
-        let snack_position = Self::generate_snack(&snake_pit);
+		let snake = Snake::new(3, Point { x: 2, y: 2 });
+        let snack_position = Self::generate_snack(&snake_pit, &snake);
         SnakeEngine {
-            snake: Snake::new(3, Point { x: 2, y: 2 }),
+            snake,
             snake_pit,
             snack_position,
         }
@@ -143,20 +164,28 @@ impl SnakeEngine {
         self.snake.change_direction(direction);
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> GameStatus {
         self.snake.move_to_next_position();
+		if self.snake.collides_with_bounds(&self.snake_pit) {
+			return GameStatus::Finished;
+		}
 		if self.snake.is_eating_snack(&self.snack_position) {
 			self.snake.make_longer();
-			self.snack_position = Self::generate_snack(&self.snake_pit);
+			self.snack_position = Self::generate_snack(&self.snake_pit, &self.snake);
 		}
+		return GameStatus::ContinueAtLevel(0);
     }
 
-    fn generate_snack(snake_pit: &SnakePit) -> Point {
+    fn generate_snack(snake_pit: &SnakePit, snake: &Snake) -> Point {
         let mut rng = rand::thread_rng();
-        Point {
+        let point = Point {
             x: rng.gen_range(1..snake_pit.width - 1),
             y: rng.gen_range(1..snake_pit.height - 1),
-        }
+        };
+		if snake.collides_with_point(&point) {
+			return Self::generate_snack(snake_pit, snake);
+		}
+		return point;
     }
 }
 
@@ -226,7 +255,14 @@ fn main() {
             Some(event::KeyCode::Down) => snake_engine.change_snake_direction(Direction::Down),
             _ => (),
         }
-        snake_engine.tick();
+        match snake_engine.tick() {
+			GameStatus::Finished => {
+				clear_display();
+				println!("The game has finished!");
+				return;
+			},
+			_ => (),
+		}
     }
 }
 
@@ -407,4 +443,51 @@ mod tests {
             ]
         );
     }
+	
+	#[test]
+	fn snake_collides_with_point() {
+		let mut snake = Snake::new(3, Point { x: 3, y: 3 });
+		assert_eq!(snake.collides_with_point(&Point{ x: 3, y: 3}), true);
+		assert_eq!(snake.collides_with_point(&Point{ x: 4, y: 3}), true);
+		assert_eq!(snake.collides_with_point(&Point{ x: 5, y: 3}), true);
+		assert_eq!(snake.collides_with_point(&Point{ x: 6, y: 3}), false);
+	}
+	
+	#[test]
+	fn snake_collides_with_pit() {
+		let mut snake = Snake::new(3, Point { x: 3, y: 3 });
+		assert_eq!(snake.collides_with_bounds(&SnakePit{ width: 5, height: 10 }), true);
+		
+		let mut snake = Snake::new(3, Point { x: 3, y: 3 });
+		assert_eq!(snake.collides_with_bounds(&SnakePit{ width: 10, height: 3 }), true);
+	
+		let mut snake = Snake::new(1, Point { x: 0, y: 3 });
+		assert_eq!(snake.collides_with_bounds(&SnakePit{ width: 5, height: 10 }), true);
+	
+		let mut snake = Snake::new(3, Point { x: 3, y: 0 });
+		assert_eq!(snake.collides_with_bounds(&SnakePit{ width: 5, height: 10 }), true);
+	}
+	
+	#[test]
+	fn game_finishes_when_snake_hits_wall() {
+		let mut engine = SnakeEngine::new(3, 5);
+		assert_eq!(engine.tick(), GameStatus::Finished);
+		
+		let mut engine = SnakeEngine::new(3, 6);
+		engine.change_snake_direction(Direction::Down);
+		assert_eq!(engine.tick(), GameStatus::Finished);
+		
+		let mut engine = SnakeEngine::new(3, 6);
+		engine.change_snake_direction(Direction::Up);
+		assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
+		assert_eq!(engine.tick(), GameStatus::Finished);
+		
+		let mut engine = SnakeEngine::new(3, 6);
+		engine.change_snake_direction(Direction::Up);
+		assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
+		engine.change_snake_direction(Direction::Left);
+		assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
+		assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
+		assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
+	}
 }
