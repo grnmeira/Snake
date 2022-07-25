@@ -77,7 +77,13 @@ impl Snake {
     }
 
     fn change_direction(&mut self, direction: Direction) {
-        self.direction = direction;
+        if direction == Direction::Up && self.direction != Direction::Down
+            || direction == Direction::Down && self.direction != Direction::Up
+            || direction == Direction::Left && self.direction != Direction::Right
+            || direction == Direction::Right && self.direction != Direction::Left
+        {
+            self.direction = direction;
+        }
     }
 
     fn get_body(&self) -> &Vec<Point> {
@@ -573,5 +579,28 @@ mod tests {
         assert_eq!(engine.tick(), GameStatus::ContinueAtLevel(0));
         engine.change_snake_direction(Direction::Up);
         assert_eq!(engine.tick(), GameStatus::Finished);
+    }
+
+    #[test]
+    fn snake_cant_go_backwards() {
+        let mut snake = Snake::new(3, Point { x: 3, y: 3 });
+        assert_eq!(
+            snake.get_body(),
+            &[
+                Point { x: 3, y: 3 },
+                Point { x: 4, y: 3 },
+                Point { x: 5, y: 3 },
+            ]
+        );
+        snake.change_direction(Direction::Left);
+        snake.move_to_next_position();
+        assert_eq!(
+            snake.get_body(),
+            &[
+                Point { x: 4, y: 3 },
+                Point { x: 5, y: 3 },
+                Point { x: 6, y: 3 },
+            ]
+        );
     }
 }
