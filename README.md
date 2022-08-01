@@ -7,4 +7,4 @@ The classic snake game written in Rust. So you can have fun without being anxiou
 This is the first piece of software I wrote in Rust.
 
 # License
-MIT
+[MIT](LICENSE)
