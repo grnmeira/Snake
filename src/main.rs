@@ -154,11 +154,12 @@ struct SnakeEngine {
     snake: Snake,
     snake_pit: SnakePit,
     snack_position: Point,
+    level: u16,
 }
 
 #[derive(Debug, PartialEq)]
 enum GameStatus {
-    ContinueAtLevel(i32),
+    ContinueAtLevel(u16),
     Finished,
 }
 
@@ -182,6 +183,7 @@ impl SnakeEngine {
                 snake,
                 snake_pit,
                 snack_position,
+                level: 0,
             }
         } else {
             panic!("Not able to create SnakeEngine, impossible to generate snack!");
@@ -199,11 +201,12 @@ impl SnakeEngine {
         }
         if self.snake.is_eating_snack(&self.snack_position) {
             self.snake.make_longer();
+            self.level += 1;
             if let Some(snack_position) = Self::generate_snack(&self.snake_pit, &self.snake) {
                 self.snack_position = snack_position;
             }
         }
-        return GameStatus::ContinueAtLevel(0);
+        return GameStatus::ContinueAtLevel(self.level);
     }
 
     fn generate_snack(snake_pit: &SnakePit, snake: &Snake) -> Option<Point> {
@@ -266,7 +269,7 @@ fn display_snack(snack_position: &Point) {
 }
 
 fn wait_for_latest_event(timeout: u32) -> Option<event::KeyCode> {
-    let limit = Instant::now() + time::Duration::from_millis(1000);
+    let limit = Instant::now() + time::Duration::from_millis(timeout.into());
     let mut latest_event: Option<event::KeyCode> = None;
     while limit - Instant::now() > time::Duration::from_millis(0) {
         if event::poll(limit - Instant::now()).unwrap() {
@@ -281,13 +284,14 @@ fn wait_for_latest_event(timeout: u32) -> Option<event::KeyCode> {
 
 fn main() {
     let mut snake_engine = SnakeEngine::new(20, 30);
+    let mut current_level: u16 = 0;
 
     loop {
         clear_display();
         display_snake_pit(&snake_engine.snake_pit);
         display_snack(&snake_engine.snack_position);
         display_snake(&snake_engine.snake.body);
-        let event = wait_for_latest_event(1000);
+        let event = wait_for_latest_event((1000 / (current_level + 1)).into());
         match event {
             Some(event::KeyCode::Up) => snake_engine.change_snake_direction(Direction::Up),
             Some(event::KeyCode::Left) => snake_engine.change_snake_direction(Direction::Left),
@@ -301,7 +305,7 @@ fn main() {
                 println!("The game has finished!");
                 return;
             }
-            _ => (),
+            GameStatus::ContinueAtLevel(level) => current_level = level,
         }
     }
 }
