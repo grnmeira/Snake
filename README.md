@@ -1,5 +1,5 @@
 # Snake Game
-The classic snake game written in Rust. So you can have fun without being anxious it's going to crash. 
+The classic snake game written in Rust. So you can have fun without worrying about a crash. 
 
 ![Demo](snake.gif)
 
